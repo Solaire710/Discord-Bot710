@@ -5,7 +5,6 @@ import yt_dlp
 import re
 import os
 from dotenv import load_dotenv
-from aiohttp import web  # <-- for dummy HTTP server
 
 load_dotenv()  # loads .env file
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -127,26 +126,9 @@ async def auto_leave_check():
             print("Left voice channel due to inactivity.")
 
 # -----------------------
-# Dummy HTTP server for Render Free Web Service
-# -----------------------
-async def handle(request):
-    return web.Response(text="Bot is running!")
-
-async def start_server():
-    app = web.Application()
-    app.add_routes([web.get("/", handle)])
-    port = int(os.environ.get("PORT", 10000))  # Render assigns PORT
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", port)
-    await site.start()
-    print(f"HTTP server running on port {port}")
-
-# -----------------------
-# Run both bot and server
+# Run bot only
 # -----------------------
 async def main():
-    await start_server()
     await bot.start(TOKEN)
 
 asyncio.run(main())
