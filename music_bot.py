@@ -5,6 +5,7 @@ import yt_dlp
 import re
 import os
 from dotenv import load_dotenv
+from aiohttp import web  # <-- for dummy HTTP server
 
 load_dotenv()  # loads .env file
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -39,7 +40,6 @@ async def on_ready():
     print(f'Logged in as {bot.user}')
     auto_leave_check.start()  # Start the loop only after the bot is ready
 
-
 def is_url(input_str):
     # Basic check for YouTube URL
     return re.match(r'https?://(www\.)?youtube\.com/watch\?v=', input_str) or re.match(r'https?://youtu\.be/', input_str)
@@ -66,7 +66,6 @@ async def play_next():
 
     source = await discord.FFmpegOpusAudio.from_probe(url, **FFMPEG_OPTIONS)
     voice_client.play(source, after=lambda e: asyncio.run_coroutine_threadsafe(play_next(), bot.loop))
-
 
 @bot.command()
 async def help(ctx):
@@ -113,11 +112,10 @@ async def skip(ctx):
 async def leave(ctx):
     if ctx.voice_client:
         await ctx.voice_client.disconnect()
-        song_queue.clear()  # optional: clear the queue on leaving
+        queue.clear()  # optional: clear the queue on leaving
         await ctx.send("Disconnected from the voice channel and cleared the queue.")
     else:
         await ctx.send("I'm not in a voice channel!")
-
 
 @tasks.loop(seconds=60)
 async def auto_leave_check():
@@ -128,4 +126,27 @@ async def auto_leave_check():
             voice_client = None
             print("Left voice channel due to inactivity.")
 
-bot.run(TOKEN)
+# -----------------------
+# Dummy HTTP server for Render Free Web Service
+# -----------------------
+async def handle(request):
+    return web.Response(text="Bot is running!")
+
+async def start_server():
+    app = web.Application()
+    app.add_routes([web.get("/", handle)])
+    port = int(os.environ.get("PORT", 10000))  # Render assigns PORT
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+    print(f"HTTP server running on port {port}")
+
+# -----------------------
+# Run both bot and server
+# -----------------------
+async def main():
+    await start_server()
+    await bot.start(TOKEN)
+
+asyncio.run(main())
