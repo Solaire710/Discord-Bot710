@@ -6,7 +6,7 @@ import re
 import os
 from dotenv import load_dotenv
 from aiohttp import web
-import io
+import tempfile
 
 # Load local .env if present
 load_dotenv()
@@ -37,9 +37,14 @@ YTDL_OPTIONS = {
     'noplaylist': True
 }
 
-# Add cookies if present
+# If cookies are provided, write them to a temp file
+cookie_file_path = None
 if COOKIES:
-    YTDL_OPTIONS['cookiefile'] = io.StringIO(COOKIES)
+    tmp = tempfile.NamedTemporaryFile(delete=False, mode='w', suffix='.txt')
+    tmp.write(COOKIES)
+    tmp.close()
+    cookie_file_path = tmp.name
+    YTDL_OPTIONS['cookiefile'] = cookie_file_path
 
 # -------------------------
 # Bot events and commands
